@@ -1,0 +1,13 @@
+{
+  "C": {
+    "mu": 180,
+    "sigma":  50,
+    "lambda": 2,
+  },
+  ...
+}
+
+// restarts
+// num iter for em
+// tollerance
+//

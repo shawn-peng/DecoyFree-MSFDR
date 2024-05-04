@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "DecoyFree-MSFDR"
+version = "0.0.3"
+authors = [
+  { name="Yisu Peng", email="yisupeng@gmail.com" },
+]
+description = "A package to estimate FDR in mass-spectrometry searching results using decoy-free approach"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pandas",
+    "matplotlib",
+    "pymzml",
+    "logical-unification",
+    "hdf5storage",
+    "scipy",
+    "torchquad",
+]
+
+
+
+[project.urls]
+"Homepage" = "https://github.com/shawn-peng/DecoyFree-MSFDR"
+"Bug Tracker" = "https://github.com/shawn-peng/DecoyFree-MSFDR/issues"
+
+[project.scripts]
+decoyfree-msfdr = "decoyfree_msfdr:decoyfree_msfdr"
+decoyfree-xlmsfdr = "decoyfree_msfdr:decoyfree_xlmsfdr"
