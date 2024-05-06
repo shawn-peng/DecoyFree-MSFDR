@@ -6,7 +6,8 @@ import numpy as np
 from . import skew_normal as skew_normal
 from . import fixed_normal
 # from . import skew_normal_cupy as skew_normal
-from . import normal_gpu
+# from . import normal_gpu
+from . import normal
 from .constraints import *
 from .param_binary_search import *
 # from .ms_mixture_model_base import MixtureModelBase
@@ -23,7 +24,8 @@ from collections import defaultdict
 from typing import *
 
 SN = skew_normal.SkewNormal
-N = normal_gpu.Normal
+# N = normal_gpu.Normal
+N = normal.Normal
 FN = fixed_normal.FixedNormal
 
 

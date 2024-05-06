@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 from scipy import stats
 import numpy as np
 from . import skew_normal
-from . import normal_gpu
+# from . import normal_gpu
+from . import normal
 from .constraints import *
 from .param_binary_search import *
 import sympy
@@ -15,7 +16,8 @@ from typing import *
 import multiprocessing as mp
 
 SN = skew_normal.SkewNormal
-N = normal_gpu.Normal
+# N = normal_gpu.Normal
+N = normal.Normal
 
 
 class PlotWrapper:
