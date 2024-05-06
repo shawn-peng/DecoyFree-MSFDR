@@ -48,8 +48,8 @@ datasets = [
 SAMPLE_SIZE = 0
 tolerance = 1e-8
 max_iteration = 5000
-show_plotting = True
-# show_plotting = False
+# show_plotting = True
+show_plotting = False
 plot_interval = 5
 # gaussian_model = True
 gaussian_model = False
@@ -110,7 +110,7 @@ parser.add_argument('-o', '--random_i', type=int, default=-1)
 parser.add_argument('--tolerance', type=float, default=tolerance)
 parser.add_argument('-p', '--parallel', action='store_true', default=False)
 parser.add_argument('-i', '--inner_parallel', action='store_true', default=False)
-parser.add_argument('--show_plotting', action='store_true', default=show_plotting)
+parser.add_argument('--show_plotting', action='store_true', default=False)
 parser.add_argument('--mu_strategy', default=mu_strategy)
 parser.add_argument('--out_dir', default=out_dir)
 

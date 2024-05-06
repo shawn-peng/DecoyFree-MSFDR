@@ -85,6 +85,8 @@ class MixtureModel(MixtureModelBase):
         self.ic2_comp = ic2_comp
         self.seedoff = seedoff
 
+        self.log('show plotting', self.show_plotting)
+
         """To do a mixed 1S 2S model, we add 3 joint component"""
         if ic2_comp:
             self.join_comps = [
@@ -189,7 +191,6 @@ class MixtureModel(MixtureModelBase):
             for j, cname in enumerate(self.comps[i].keys()):
                 spart = f'{i + 1}{cname}'
                 sym_ws[cname] = self.syms[f'w{spart}']
-            # print(self.sym_ws)
             self.sym_ws.append(sym_ws)
 
         self.Lag_sys_eqs = []
@@ -337,18 +338,12 @@ class MixtureModel(MixtureModelBase):
             else:
                 flag = True
                 violated_cons.append(cname)
-                # violated_cons += 1
-                # sys_eqs.append(self.weight_cons[j])
-                # sys_eqs.append(self.weight_cons[f'2{cname}'])
 
         if not flag:
             return res
 
         if len(violated_cons) > 1:
             pass
-            # print(f'got {violated_cons} active constraints, might unable to find solution')
-            # issue solved
-            # return res
 
         # usually we get two at most, if we have two violated cons
         # try two cons separately, check wether all cons are satisfied
@@ -365,7 +360,6 @@ class MixtureModel(MixtureModelBase):
             yield from choose_n(l[1:], n)
 
         def gen_sys_eq(active_cnames):
-            # print(active_cnames)
             newsys, newvals = deepcopy(sys_eqs), deepcopy(vals)
             # for cname in violated_cons:
             for cname in self.comps[1].keys():
@@ -463,17 +457,12 @@ class MixtureModel(MixtureModelBase):
                     #              for j in range(solutions.shape[1])]
                     solutions = sympy.nonlinsolve(sys_eqs, *syms)
                     solutions = [dict(zip(syms, s)) for s in solutions]
-                    # print(solutions)
                 else:
-                    # print(sys_eqs)
                     solutions = sympy.nsolve(sys_eqs, syms, guess)
                     solutions = [dict(zip(syms, solutions[:, j]))
                                  for j in range(solutions.shape[1])]
                     # solutions = sympy.solve(sys_eqs)
             except Exception as e:
-                # if e is not ZeroDivisionError:
-                #     tb.print_exc()
-                # tb.print_exc()
                 return
 
             solutions = [s for s in solutions if all(map(lambda x: x.is_real, s.values()))]
@@ -494,8 +483,6 @@ class MixtureModel(MixtureModelBase):
         def check_cons(ws):
             for j, cname in enumerate(self.comps[1].keys()):
                 r = float(self.weight_cons[f'2{cname}'].subs(ws))
-                # assert r < 0 or np.isclose(r, 0)
-                # print(r)
                 if not (r < 0 or np.isclose(r, 0)):
                     return False
             return True
@@ -522,10 +509,6 @@ class MixtureModel(MixtureModelBase):
             return res
             assert False
 
-        # if len(solutions) != 1:
-        #     print(f'failed to solve weights, got {len(solutions)} solutions, return unconstrained weights')
-        #     return res
-
         return res
 
     def putdata(self, X):
@@ -550,7 +533,7 @@ class MixtureModel(MixtureModelBase):
         return True
 
     def log(self, *args):
-        print(f'{self.title} id {self.seedoff}:', *args)
+        print(f'{self.title} init skew {self.skew_dirs} id {self.seedoff}:', *args)
 
     def rand_sigmas(self, sigma, slow=0.5, shigh=1.0):
         sigmas = {}
@@ -691,7 +674,6 @@ class MixtureModel(MixtureModelBase):
         for i in range(frozen_model.n_samples):
             weights.append({})
             for cname, w in frozen_model.weights[i].items():
-                print(weights[i])
                 weights[i][cname] = w.get()
         model['weights'] = weights
         return model
@@ -717,7 +699,6 @@ class MixtureModel(MixtureModelBase):
             # seed = 31
             # seed = self.seedoff + 8
             # seed = 4
-            print(f'seed {seed}')
             np.random.seed(seed)
 
             for i in range(len(self.comps)):
@@ -754,7 +735,6 @@ class MixtureModel(MixtureModelBase):
                 # self.plot(X, [], self.sep_log_likelihood(X))
                 if self.check_constraints():
                     break
-                self.log('resample params')
             self.log(self.comps)
         # elif self.init_strategy == 'one_sample':
         #     model1s = MixtureModel1S(self.skew_dirs, self.constraints, self.tolerance, self.binwidth, self.plotstep,
@@ -902,7 +882,7 @@ class MixtureModel(MixtureModelBase):
 
         n, d = X.shape
 
-        print(f'model initialized {self.initialized}')
+        self.log(f'model initialized {self.initialized}')
         if not self.initialized:
             self.init_model(X)
 
@@ -919,15 +899,11 @@ class MixtureModel(MixtureModelBase):
             pass
         prev_t = time.time()
         while abs(self.ll - prev_ll) > self.tolerance and not self.stopped and len(self.lls) <= self.max_iteration:
-            # print(f'iteration {len(self.lls)}')
             prev_ll = self.ll
             rs = self.pred(X)
 
-            # print('ll', self.ll)
             # sum_rs = []
             new_weights = self.solve_weights([np.sum(r, 0) for r in rs], n)
-
-            # print(f'solved weights')
 
             def proj_weights():
                 cons = self.relative_constraints['IC_C_w2'].getWeightChecker('left')
@@ -953,7 +929,6 @@ class MixtureModel(MixtureModelBase):
             proj_weights()
             self.update_weights(new_weights)
             # self.weights = new_weights
-            # print('projected weights', self.weights)
 
             d = defaultdict(lambda: [None, [], []])
             for i, r in enumerate(rs):
@@ -967,11 +942,8 @@ class MixtureModel(MixtureModelBase):
             for cname, (cdist, xs, rs) in d.items():
                 cdist.iterfit(np.array(xs), np.array(rs), self.comp_constraints[cname])
 
-            # ll = self.log_likelihood(X)
             self.ll = self.log_likelihood(X)
             # assert ll >= self.lls[-1]
-            if self.ll < self.lls[-1]:
-                self.log('ll decreased', f'{self.lls[-1]} -> {self.ll}')
             self.lls.append(self.ll)
             self.slls = self.sep_log_likelihood(X)
 
@@ -987,20 +959,15 @@ class MixtureModel(MixtureModelBase):
 
             meter = TimeMeter()
             cur_t = time.time()
-            # print(self.show_plotting, self.plot_interval, cur_t - prev_t)
             if self.event_notify_func:
                 self.event_notify_func('update', self.frozen())
-            # print(cur_t)
             if cur_t - prev_t >= self.plot_interval:
                 self.log(f'{len(self.lls)} iterations')
                 if self.show_plotting:
                     # thread = threading.Thread(target=lambda : self.plot(X, self.lls, self.slls))
                     # thread = threading.Thread(target=update_fig)
                     # thread.start()
-                    print('plotting...')
                     self.plot(X, self.lls, self.slls)
-                    print('|', meter.read())
-                    print('plot finished')
 
                 prev_t = time.time()
 

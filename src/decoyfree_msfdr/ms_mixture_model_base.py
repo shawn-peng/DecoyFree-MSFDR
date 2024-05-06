@@ -234,7 +234,8 @@ class MixtureModelBase:
             ax2.plot(x, frozen_model.ecdf_curve)
             ax2.plot(x, frozen_model.fdr_curve)
         except:
-            print('failed to plot fdr')
+            # print('failed to plot fdr')
+            pass
 
         if frozen_model.title:
             ax.set_title(frozen_model.title)

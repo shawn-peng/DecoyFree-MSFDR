@@ -82,6 +82,8 @@ class MixtureModel(MixtureModelBase):
         self.event_notify_func = event_notify_func
         self.seedoff = seedoff
 
+        self.log('show plotting', self.show_plotting)
+
         """To do a mixed 1S 2S model, we add 3 joint component"""
         self.join_comps = [
             ['C', 'I1', 'I1', 'C', 'I1'],
@@ -616,7 +618,6 @@ class MixtureModel(MixtureModelBase):
             # seed = 31
             # seed = self.seedoff + 8
             # seed = 4
-            print(f'seed {seed}')
             np.random.seed(seed)
 
             for i in range(len(self.comps)):
@@ -745,7 +746,7 @@ class MixtureModel(MixtureModelBase):
 
         n, d = X.shape
 
-        print(f'model initialized {self.initialized}')
+        self.log(f'model initialized {self.initialized}')
         if not self.initialized:
             self.init_model(X)
 
