@@ -9,7 +9,7 @@ exclude = [
 
 [project]
 name = "DecoyFree-MSFDR"
-version = "0.1.2"
+version = "0.1.3"
 authors = [
   { name="Yisu Peng", email="yisupeng@gmail.com" },
 ]

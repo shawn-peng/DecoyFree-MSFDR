@@ -2,10 +2,12 @@ import time
 import json
 import pprint
 import sys
+
 if sys.platform == 'linux':
     import fcntl
 
 import numpy as np
+import asyncio
 
 
 class TimeMeter:
@@ -15,6 +17,29 @@ class TimeMeter:
     def read(self):
         t = time.time_ns()
         return (t - self.s) / 1e6
+
+
+def executor_submit(executor, func, *args):
+    task = executor.submit(func, *args)
+
+    async def _wrap_future():
+        return task.result()
+
+    return _wrap_future()
+
+
+async def async_map(executor, func, values):
+    # Map a list of values to the executor asynchronously
+    tasks = [func(executor, val) for val in values]
+    results = await asyncio.gather(*tasks)
+    return results
+
+
+async def async_starmap(executor, func, argss):
+    # Map a list of values to the executor asynchronously
+    tasks = [func(executor, *args) for args in argss]
+    results = await asyncio.gather(*tasks)
+    return results
 
 
 def acquireLock(lockfile):

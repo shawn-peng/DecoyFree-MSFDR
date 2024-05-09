@@ -103,7 +103,7 @@ def collect_search_result(args):
             dfs.append(collect_file(f, args))
     else:
         with multiprocessing.Pool(args.threads) as pool:
-            dfs = pool.map(lambda f: collect_file(f, args), files)
+            dfs = pool.starmap(collect_file, [(f, args) for f in files])
 
     df = pd.concat(dfs)
     print(df.shape)

@@ -95,7 +95,7 @@ class MixtureModel1S(MixtureModelBase):
         self.stopped = False
 
     def log(self, *args):
-        print(f'{self.title} id {self.seedoff}:', *args)
+        print(f'{self.title} init skew {self.skew_dirs} id {self.seedoff}:', *args)
 
     def from_frozen(self, frozen_model, X):
         self.init_range(X)

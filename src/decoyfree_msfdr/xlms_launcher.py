@@ -3,6 +3,8 @@ import multiprocessing
 import shutil
 # multiprocessing.set_start_method('spawn')
 import traceback
+import asyncio
+from concurrent.futures import ProcessPoolExecutor
 
 import os
 
@@ -121,7 +123,7 @@ parser.add_argument('--out_dir', default=out_dir)
 
 args, _ = parser.parse_known_args()
 
-print(args)
+# print(args)
 
 config = args.config
 model_samples = args.model_samples
@@ -221,6 +223,8 @@ def run_model(sls, dataset_name, dataset, res_dir, modelid=0):
         model = MixtureModel1S(sls, **settings[config], title=title, seedoff=modelid)
     elif model_samples == 2:
         model = MixtureModel(sls, **settings[config], title=title, seedoff=modelid)
+    else:
+        raise ValueError('Invalid number of samples for model. (Available values are [1, 2])')
     try:
         ll, lls = model.fit(dataset.mat.T)
         pass
@@ -251,15 +255,14 @@ def run_model(sls, dataset_name, dataset, res_dir, modelid=0):
     }
 
 
-def run_rand_models(n, sls, dataset_name, dataset, res_dir):
+async def run_rand_models(n, sls, dataset_name, dataset, res_dir, executor=None):
     rand_dir = f"{res_dir}/random_{'_'.join(map(str, sls.values()))}/"
     # if not os.path.exists(rand_dir):
     #     os.makedirs(rand_dir)
 
-    if parallel and inner_parallel:
-        with multiprocessing.get_context('spawn').Pool(num_workers) as pool:
-            models = pool.starmap(run_model,
-                                  [(sls, dataset_name, dataset, rand_dir, i) for i in range(n)])
+    if executor:
+        tasks = [executor_submit(executor, run_model, sls, dataset_name, dataset, rand_dir, i) for i in range(n)]
+        models = await asyncio.gather(*tasks)
     else:
         models = list(starmap(run_model, [(sls, dataset_name, dataset, rand_dir, i) for i in range(n)]))
     models = list(sorted(models, key=lambda x: x['ll'], reverse=True))
@@ -301,6 +304,22 @@ def enum_signs(comps):
 
 
 def run_dataset(dataset):
+    executor = ProcessPoolExecutor(max_workers=num_workers)
+    return asyncio.run(run_dataset_async(dataset, executor))
+
+
+"""
+Loop -- tasks queue
+        -- run_dataset
+            submit jobs and block
+        -- task future
+
+ProcessPool -- run tasks
+
+"""
+
+
+async def run_dataset_async(dataset, executor=None):
     dataset_name = 'Dataset'
     # global base_figure_dir
     # base_figure_dir = f'figures_python_diffsign_{model_class}_{config}{dir_suffix}' \
@@ -337,10 +356,13 @@ def run_dataset(dataset):
     args = capture_args(locals())
 
     if init_strategy == 'random':
-        models = list(
-            map(lambda sls: run_rand_models(random_size, sls, dataset_name, dataset, res_dir), choices))
+        tasks = list(
+            map(lambda sls: run_rand_models(random_size, sls, dataset_name, dataset, res_dir, executor), choices))
+        models = await asyncio.gather(*tasks)
     else:
-        models = list(starmap(run_model, choices, *args))
+        # models = list(starmap(run_model, choices, *args))
+        tasks = [executor_submit(executor, run_model, sls, *args) for sls in choices]
+        models = await asyncio.gather(*tasks)
     # lock = acquireLock(f'{res_dir}/models_pickle.lock')
     # if os.path.exists(f'{res_dir}/models.pickle'):
     #     models = pickle.load(open(f'{res_dir}/models.pickle', 'rb')) + models

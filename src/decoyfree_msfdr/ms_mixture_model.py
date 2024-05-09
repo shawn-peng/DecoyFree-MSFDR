@@ -507,7 +507,7 @@ class MixtureModel(MixtureModelBase):
         return True
 
     def log(self, *args):
-        print(f'{self.title} id {self.seedoff}:', *args)
+        print(f'{self.title} init skew {self.skew_dirs} id {self.seedoff}:', *args)
 
     def rand_sigmas(self, sigma, slow=0.5, shigh=1.0):
         sigmas = {}
