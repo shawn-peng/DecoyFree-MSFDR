@@ -68,7 +68,7 @@ parallel = True
 # parallel = False
 # inner_parallel = True
 inner_parallel = False
-num_workers = 20
+num_workers = 1
 if init_strategy == 'random' and parallel and inner_parallel:
     show_plotting = False
 
@@ -104,7 +104,7 @@ dir_suffix = '_4'
 
 out_dir = 'results/'
 
-parser = argparse.ArgumentParser(prog='XLMS')
+parser = argparse.ArgumentParser(prog='decoyfree-msfdr')
 parser.add_argument('-c', '--config', default=config)
 parser.add_argument('-s', '--model_samples', type=int, default=model_samples)
 parser.add_argument('--threads', type=int, default=num_workers)
@@ -240,16 +240,17 @@ def run_model(sls, dataset_name, dataset, res_dir, modelid=0):
         ll = model.ll
         lls = model.lls
         # model.plot(dataset.mat.T, model.lls, model.sample_ll)
-    ax = plt.gcf().axes[0]
-    plt.axes(ax)
-    # tda_fdr1 = tda_info['fdr_thres']
-    # plt.axvline(tda_fdr1, linestyle='--')
-    # plt.text(tda_fdr1, 0.003, '$\leftarrow$ TDA 1% FDR threshold')
-    plt.title(
-        f"({dataset.mat.shape[1] / 1000:.1f}k) {dataset_name} {sls} ll={ll:.05f}"
-        f" constraints={get_cons_str(settings[config]['constraints'])}"
-        f" {'Y' if model.cons_satisfied else 'N'}")
-    plt.savefig(res_dir + '_'.join(map(str, sls.values())) + '.png')
+    if plt.gcf().axes:
+        ax = plt.gcf().axes[0]
+        plt.axes(ax)
+        # tda_fdr1 = tda_info['fdr_thres']
+        # plt.axvline(tda_fdr1, linestyle='--')
+        # plt.text(tda_fdr1, 0.003, '$\leftarrow$ TDA 1% FDR threshold')
+        plt.title(
+            f"({dataset.mat.shape[1] / 1000:.1f}k) {dataset_name} {sls} ll={ll:.05f}"
+            f" constraints={get_cons_str(settings[config]['constraints'])}"
+            f" {'Y' if model.cons_satisfied else 'N'}")
+        # plt.savefig(res_dir + '_'.join(map(str, sls.values())) + '.png')
     return {
         'll':         ll,
         'll_curve':   lls,

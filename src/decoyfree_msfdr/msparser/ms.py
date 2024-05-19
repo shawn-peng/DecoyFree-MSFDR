@@ -7,9 +7,11 @@ from collections import defaultdict
 
 
 class MS_Dataset:
-    def __init__(self, df, scorefield='EValue'):
+    def __init__(self, df, scorefield='EValue', logscale=True, negscore=True, spec_ref_column=('#SpecFile', 'SpecID'),
+                 noisotope=True):
         print(df.shape)
-        self.mat = self.extract_smat(df).to_numpy().T
+        self.mat = self.extract_smat(df, score_column=scorefield, logscale=logscale, negscore=negscore,
+                                     spec_ref_column=spec_ref_column, noisotope=noisotope).to_numpy().T
         print(self.mat.shape)
 
     @staticmethod
@@ -19,12 +21,9 @@ class MS_Dataset:
             logscale=True,
             negscore=True,
             spec_ref_column=('#SpecFile', 'SpecID'),
-            pep_column='Peptide',
-            noisotope=True,
-            nodup=True,
-            keep_diff_xl_pos=False):
+            noisotope=True):
         spec_matches = defaultdict(list)
-        spec_peptides = defaultdict(set)
+        # spec_peptides = defaultdict(set)
         for i, row in tab.iterrows():
             # specid = row['spectrum_reference']
             if isinstance(spec_ref_column, (tuple, list)):
@@ -39,11 +38,11 @@ class MS_Dataset:
             if len(spec_matches[specid]) >= 2:
                 continue
             # pep = (row['sequence'], row['sequence_beta'])
-            pep = row[pep_column]
-            if nodup and pep in spec_peptides[specid]:
-                continue
-            if not keep_diff_xl_pos:
-                spec_peptides[specid].add(pep)
+            # pep = row[pep_column]
+            # if nodup and pep in spec_peptides[specid]:
+            #     continue
+            # if not keep_diff_xl_pos:
+            #     spec_peptides[specid].add(pep)
             s = row[score_column]
             if logscale:
                 s = np.log(s)

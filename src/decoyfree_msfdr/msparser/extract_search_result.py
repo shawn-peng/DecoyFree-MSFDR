@@ -12,7 +12,7 @@ import json
 from collections import defaultdict
 
 from load_search_result import load_idxmls, load_mzids
-from plot_search_result import plot_result
+# from plot_search_result import plot_result
 
 info_dir = './results/info/'
 
@@ -129,7 +129,7 @@ def extract_to_matfile_for_dataset(name):
     data_tab['xl_rank'] = data_tab['xl_rank'].astype(int)
     data_tab['OpenPepXL:score'] = data_tab['OpenPepXL:score'].astype(float) * 300
 
-    plot_result(data_tab)
+    # plot_result(data_tab)
     # extract_to_matfile(data_tab, f'{name}.mat', keep_diff_xl_pos=True)
     extract_to_matfile(data_tab, f'{name}_nodup.mat', keep_diff_xl_pos=False)
 

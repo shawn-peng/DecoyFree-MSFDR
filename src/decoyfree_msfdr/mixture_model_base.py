@@ -65,8 +65,8 @@ class MixtureModelBase:
         pass
 
     def init_range(self, X):
-        xmax = np.max(X)
-        xmin = np.min(X)
+        xmax = np.nanmax(X)
+        xmin = np.nanmin(X)
         self.n_xsamples = 200
         xstep = (xmax - xmin) / self.n_xsamples
         # x = np.arange(xmin, xmax + self.plotstep, self.plotstep)
