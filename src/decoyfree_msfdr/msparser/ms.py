@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 
+from ..mixture_model_base import MixtureModelBase
+
 
 class MS_Dataset:
     def __init__(self, df, scorefield='EValue', logscale=True, negscore=True, spec_ref_column=('#SpecFile', 'SpecID'),
@@ -51,7 +53,7 @@ class MS_Dataset:
             spec_matches[specid].append(s)
         for l in spec_matches.values():
             if len(l) == 1:
-                l.append(0)
+                l.append(MixtureModelBase.missing_value_placeholder)
                 # l.append(np.nan)
         smat = pd.DataFrame(spec_matches).transpose().rename(columns={0: 's1', 1: 's2'})
         print(smat)

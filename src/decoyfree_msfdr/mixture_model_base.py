@@ -34,7 +34,15 @@ class PlotWrapper:
             self.func(X, *args[1:])
 
 
+def values_except(X, ex):
+    x = X.reshape([-1])
+    x = x[x != ex]
+    return x
+
+
 class MixtureModelBase:
+    missing_value_placeholder = 0
+
     def __init__(self, plot_func=None, title=None, **kwargs):
         self.plot_func = plot_func
         # if not plot_pipe:
@@ -66,14 +74,14 @@ class MixtureModelBase:
 
     def init_range(self, X):
         xmax = np.nanmax(X)
-        xmin = np.nanmin(X)
+        xmin = np.nanmin(values_except(X, self.missing_value_placeholder))
         self.n_xsamples = 200
         xstep = (xmax - xmin) / self.n_xsamples
         # x = np.arange(xmin, xmax + self.plotstep, self.plotstep)
         self.xrange = np.arange(xmin, xmin + (xmax - xmin) * self.x_upper_bound_scale + xstep, xstep)
 
-        xmax = np.max(X)
-        xmin = np.min(np.quantile(X, 0.005))
+        xmax = np.nanmax(X)
+        xmin = np.nanmin(np.quantile(values_except(X, self.missing_value_placeholder), 0.005))
         self.plotstep = (xmax - xmin) / self.plot_sample
         self.plotting_xrange = np.arange(xmin, xmax + self.plotstep, self.plotstep)
 

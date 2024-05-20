@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 
+from ..mixture_model_base import MixtureModelBase
+
 
 class XLMS_Dataset:
     def __init__(self, df, nodup=True, scorefield='OpenPepXL:score', logscale=False, negscore=False,
@@ -46,7 +48,6 @@ class XLMS_Dataset:
             if not keep_diff_xl_pos:
                 spec_peptides[specid].add(pep)
             if logscale:
-                s += 20
                 s = np.log(s)
                 if np.isnan(s):
                     raise ValueError('There are invalid values in PSM score. Log scale can not be applied')
@@ -55,6 +56,6 @@ class XLMS_Dataset:
             spec_matches[specid].append(s)
         for l in spec_matches.values():
             if len(l) == 1:
-                l.append(0)
+                l.append(MixtureModelBase.missing_value_placeholder)
                 # l.append(np.nan)
         return pd.DataFrame(spec_matches).transpose().rename(columns={0: 's1', 1: 's2'})
