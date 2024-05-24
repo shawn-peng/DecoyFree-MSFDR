@@ -97,7 +97,7 @@ def decoyfree_msfdr():
         ms_launcher.run_dataset(dataset)
     else:
         model = json.load(open(args.eval_model))
-        model_perf = ms_launcher.eval_model(dataset, model)
+        model_perf = ms_launcher.eval_model(dataset, model, args.out_dir)
         print(model_perf)
 
 
@@ -142,7 +142,7 @@ def decoyfree_xlmsfdr():
         xlms_launcher.run_dataset(dataset)
     else:
         model = json.load(open(args.eval_model))
-        model_perf = xlms_launcher.eval_model(dataset, model)
+        model_perf = xlms_launcher.eval_model(dataset, model, args.out_dir)
         print(model_perf)
 
 

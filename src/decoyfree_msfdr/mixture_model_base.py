@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.transforms as transforms
 from scipy import stats
 import numpy as np
 from . import skew_normal
@@ -71,6 +72,45 @@ class MixtureModelBase:
     def __del__(self):
         # self.plot_pipe.send(None)
         pass
+
+    def to_json(self):
+        model = {}
+        for cname, dist in self.all_comps.items():
+            param = {
+                'mu': dist.mu,
+                'sigma': dist.sigma,
+                'lambda': dist.alpha,
+            }
+            model[cname] = param
+
+        weights = []
+        for i in range(self.n_samples):
+            weights.append([])
+            for cname, w in self.weights[i].items():
+                weights[i][cname] = w.get()
+        model['weights'] = weights
+        return model
+
+    @staticmethod
+    def json_from_frozen(frozen_model):
+        model = {}
+        for cname, dist in frozen_model.all_comps.items():
+            if cname == 'NA':
+                continue
+            param = {
+                'mu':     dist.mu,
+                'sigma':  dist.sigma,
+                'lambda': dist.alpha,
+            }
+            model[cname] = param
+
+        weights = []
+        for i in range(frozen_model.n_samples):
+            weights.append({})
+            for cname, w in frozen_model.weights[i].items():
+                weights[i][cname] = w.get()
+        model['weights'] = weights
+        return model
 
     def init_range(self, X):
         xmax = np.nanmax(X)
@@ -160,10 +200,13 @@ class MixtureModelBase:
         # distc = {}
         axs = []
         idmap = defaultdict(lambda: len(idmap))
-        nsub = frozen_model.n_samples + 1
+        nsub = frozen_model.n_samples + (1 if lls is not None else 0)
         # fig.clf()
         if not fig.axes:
-            axs = fig.subplots(nsub, 1)
+            if nsub == 1:
+                axs = np.array([fig.subplots(nsub, 1)])
+            else:
+                axs = fig.subplots(nsub, 1)
         else:
             axs = fig.axes
             axs.pop().remove()
@@ -202,7 +245,7 @@ class MixtureModelBase:
                              f' {cname}: m={cdist.mu:.2f}({scdist.mu:.2f}),' \
                              f' s={cdist.sigma:.2f}({scdist.sigma:.2f}),' \
                              f' a={cdist.alpha:.2f}({scdist.alpha:.2f})'
-                ax.text(xmin, ymax * (1 - 0.1 * (j + 1)), str_params)
+                ax.text(0.05, (1 - 0.1 * (j + 1)), str_params, transform=ax.transAxes)
             # print('draw mixture')
             ax.plot(x, yi, c='C%d' % idmap['mixture'])
             legends.append(f'mixture{i + 1}')
@@ -219,26 +262,31 @@ class MixtureModelBase:
             # h = info.hist[i]
             # fig.bar(h[1][:-1], h[0], facecolor='none', edgecolor='k')
             # print('draw texts')
-            ax.text(xmax * 0.76, ymax * 0.9, f'll = {slls[i]:.5f}')
-            ax.text(xmax * 0.76, ymax * 0.7, f'$\delta_{{cdf}}$ = {frozen_model.delta_cdf:.5f}')
+            ax.text(0.76, 0.9, f'll = {slls[i]:.5f}', transform=ax.transAxes)
+            ax.text(0.76, 0.8, f'$\delta_{{cdf}}$ = {frozen_model.delta_cdf:.5f}', transform=ax.transAxes)
             # print('draw legends')
             ax.legend(legends)
 
-        """ Plot ll """
-        # ax = fig.subplot(nsub, 1, nsub, label=f'll_curve')
-        ax = axs[-1]
-        ax.cla()
-        ax.plot(lls[1:])
-        if lls:
-            ax.text(0, lls[-1] - 0.1, f'll = {lls[-1]:.5f}')
+        if lls is not None:
+            """ Plot ll """
+            # ax = fig.subplot(nsub, 1, nsub, label=f'll_curve')
+            ax = axs[-1]
+            ax.cla()
+            ax.plot(lls[1:])
+            if lls:
+                ax.text(0.05, 0.9, f'll = {lls[-1]:.5f}', transform=ax.transAxes)
 
         """ Plot FDR & Title """
         ax = fig.axes[0]
+        blended_transform = transforms.blended_transform_factory(
+            ax.transData,  # Data coordinates for x
+            ax.transAxes   # Axes coordinates for y
+        )
         # plt.axes(ax)
         try:
             fdr1 = frozen_model.fdr_thres
             ax.axvline(fdr1)
-            ax.text(fdr1, 0.005, '$\leftarrow$ 1% FDR threshold')
+            ax.text(fdr1, 0.1, '$\leftarrow$ 1% FDR threshold', transform=blended_transform)
 
             ax2 = ax.twinx()
             ax2.cla()

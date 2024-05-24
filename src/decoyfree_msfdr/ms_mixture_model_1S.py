@@ -52,6 +52,7 @@ class MixtureModel1S(MixtureModelBase):
         :param show_plotting: plot each step during running of the program
         """
         super().__init__(**kwargs)
+        self.skew_dirs = skew_dirs
         self.tolerance = tolerance
         self.binwidth = binwidth
         self.nbins = nbins
@@ -60,7 +61,7 @@ class MixtureModel1S(MixtureModelBase):
         self.show_plotting = show_plotting
         self.plot_interval = plot_interval
         self.join_comps = [
-            ['C', 'IC', 'I1'],
+            ['C', 'I1'],
         ]
         self.n_samples = len(self.join_comps)
         self.constraints = constraints
@@ -154,9 +155,8 @@ class MixtureModel1S(MixtureModelBase):
 
     def rand_mus_split(self, xmax, xmin, mu, sigma, scale=1.5):
         mus = {}
-        mus['IC'] = np.random.uniform(mu - scale * sigma, mu + scale * sigma)
-        mus['C'] = np.random.uniform(mus['IC'], xmax)
-        mus['I1'] = np.random.uniform(xmin, mus['IC'])
+        mus['C'] = np.random.uniform((xmin + xmax) / 2, xmax)
+        mus['I1'] = np.random.uniform(xmin, mus['C'])
         return mus
 
     def mus_from_sample(self, sample):
@@ -177,6 +177,22 @@ class MixtureModel1S(MixtureModelBase):
         sample = np.random.normal(mu, sigma, len(self.all_comps))
         mus = self.mus_from_sample(sample)
         return mus
+
+    @staticmethod
+    def from_json(model_json, X):
+        model = MixtureModel1S({k: 1 for k in ['C', 'I1']})
+        for k in ['C', 'I1']:
+            param = model_json[k]
+            model.all_comps[k].mu = param['mu']
+            model.all_comps[k].sigma = param['sigma']
+            model.all_comps[k].alpha = param['lambda']
+        model.update_weights(model_json['weights'])
+
+        model.initialized = True
+        model.init_range(X)
+        model.create_constraints()
+        model.starting_pos = model.frozen()
+        return model
 
     def init_model(self, X):
         X = X.astype(np.float64)
@@ -302,9 +318,8 @@ class MixtureModel1S(MixtureModelBase):
 
     def fdr(self, x):
         tp = self.weights[0]['C'] * (1 - self.all_comps['C'].cdf(x))
-        fpic = self.weights[0]['IC'] * (1 - self.all_comps['IC'].cdf(x))
         fpi1 = self.weights[0]['I1'] * (1 - self.all_comps['I1'].cdf(x))
-        fp = fpic + fpi1
+        fp = fpi1
         fdr = fp / (tp + fp)
         return fdr
 
@@ -335,28 +350,19 @@ class MixtureModel1S(MixtureModelBase):
         relative_constraints = {}
         self.relative_constraints = relative_constraints
 
-        relative_constraints['C_IC'] = RelativeConstraint(self.all_comps['C'], self.all_comps['IC'],
+        relative_constraints['C_I1'] = RelativeConstraint(self.all_comps['C'], self.all_comps['I1'],
                                                           x_range=x, mode=self.mode_constrained,
                                                           pdf=self.pdf_constrained,
                                                           cdf=self.cdf_constrained)
-        relative_constraints['IC_I1'] = RelativeConstraint(self.all_comps['IC'], self.all_comps['I1'],
-                                                           x_range=x, mode=self.mode_constrained,
-                                                           pdf=self.pdf_constrained,
-                                                           cdf=self.cdf_constrained)
         comp_constraints = {}
         self.comp_constraints = comp_constraints
         # if cname == 'C':
         comp_constraints['C'] = ComposedChecker(
-            relative_constraints['C_IC'].getDistChecker('right'),
+            relative_constraints['C_I1'].getDistChecker('right'),
         )
         # elif cname == 'IC':
-        comp_constraints['IC'] = ComposedChecker(
-            relative_constraints['C_IC'].getDistChecker('left'),
-            relative_constraints['IC_I1'].getDistChecker('right'),
-        )
-        # elif cname == 'I1':
         comp_constraints['I1'] = ComposedChecker(
-            relative_constraints['IC_I1'].getDistChecker('left'),
+            relative_constraints['C_I1'].getDistChecker('left'),
         )
 
     def fit(self, X):

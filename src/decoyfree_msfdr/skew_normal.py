@@ -79,11 +79,11 @@ class SkewNormal:
                 + w * new_sn.Delta ** 2)
                               ) / np.sum(weights)
         new_sn.from_alt_params()
-        if new_sn.alpha < 0 and self.alpha > 0:
-            print('alpha flipped, weighted sample skewness = ', weighted_skewness(X, weights))
-            print(f'old alpha: {self.alpha}, new alpha: {new_sn.alpha}')
-            pass
-            # assert False
+        # if new_sn.alpha < 0 and self.alpha > 0:
+        #     print('alpha flipped, weighted sample skewness = ', weighted_skewness(X, weights))
+        #     print(f'old alpha: {self.alpha}, new alpha: {new_sn.alpha}')
+        #     pass
+        #     assert False
         if dist_cons:
             sigma_test_func = dist_cons.get_param_checker('sigma')
             new_sn.sigma = param_binary_search(self.sigma, new_sn.sigma, sigma_test_func)

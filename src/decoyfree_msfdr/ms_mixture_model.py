@@ -82,8 +82,6 @@ class MixtureModel(MixtureModelBase):
         self.event_notify_func = event_notify_func
         self.seedoff = seedoff
 
-        self.log('show plotting', self.show_plotting)
-
         """To do a mixed 1S 2S model, we add 3 joint component"""
         self.join_comps = [
             ['C', 'I1', 'I1', 'C', 'I1'],
@@ -556,10 +554,8 @@ class MixtureModel(MixtureModelBase):
 
     def rand_mus_split(self, xmax, xmin, mu, sigma, scale=1.5):
         mus = {}
-        mus['IC'] = np.random.uniform(mu - scale * sigma, mu + scale * sigma)
-        mus['C'] = np.random.uniform(mus['IC'], xmax)
-        mus['I1'] = np.random.uniform(xmin, mus['IC'])
-        mus['IC2'] = np.random.uniform(mus['I1'], mus['IC'])
+        mus['I1'] = np.random.uniform(mu - scale * sigma, mu + scale * sigma)
+        mus['C'] = np.random.uniform(mus['I1'], xmax)
         mus['I2'] = np.random.uniform(xmin, mus['I1'])
         return mus
 
@@ -596,6 +592,22 @@ class MixtureModel(MixtureModelBase):
         self.initialized = True
 
         self.plot(X, [], self.sep_log_likelihood(X))
+
+    @staticmethod
+    def from_json(model_json, X):
+        model = MixtureModel({k: 1 for k in ['C', 'I1', 'I2']})
+        for k in ['C', 'I1', 'I2']:
+            param = model_json[k]
+            model.all_comps[k].mu = param['mu']
+            model.all_comps[k].sigma = param['sigma']
+            model.all_comps[k].alpha = param['lambda']
+        model.update_weights(model_json['weights'])
+
+        model.initialized = True
+        model.init_range(X)
+        model.create_constraints()
+        model.starting_pos = model.frozen()
+        return model
 
     def init_model(self, X):
         X = X.astype(np.float64)
@@ -792,8 +804,8 @@ class MixtureModel(MixtureModelBase):
             # ll = self.log_likelihood(X)
             self.ll = self.log_likelihood(X)
             # assert ll >= self.lls[-1]
-            if self.ll < self.lls[-1]:
-                self.log('ll decreased', f'{self.lls[-1]} -> {self.ll}')
+            # if self.ll < self.lls[-1]:
+            #     self.log('ll decreased', f'{self.lls[-1]} -> {self.ll}')
             self.lls.append(self.ll)
             self.slls = self.sep_log_likelihood(X)
 

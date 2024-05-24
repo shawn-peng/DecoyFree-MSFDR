@@ -6,7 +6,6 @@ import traceback
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 
-
 import os
 
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
@@ -142,7 +141,6 @@ out_dir = args.out_dir
 
 if not show_plotting:
     import matplotlib
-
     matplotlib.use('Agg')
 
 if mu_strategy in ['gaussian', 'uniform']:
@@ -192,7 +190,8 @@ settings = {
 
 
 def get_cons_str(constraints):
-    return ';'.join(map(lambda x: map_cons_str[x], constraints))
+    cons = ';'.join(map(lambda x: map_cons_str[x], constraints))
+    return cons if cons else 'no constraints'
 
 
 model_class = f'{model_samples}S{"g" if gaussian_model else ""}{"2" if ic2_comp else ""}'
@@ -262,8 +261,8 @@ def run_model(sls, dataset_name, dataset, res_dir, modelid=0):
 
 async def run_rand_models(n, sls, dataset_name, dataset, res_dir, executor=None):
     rand_dir = f"{res_dir}/random_{'_'.join(map(str, sls.values()))}/"
-    if not os.path.exists(rand_dir):
-        os.makedirs(rand_dir)
+    # if not os.path.exists(rand_dir):
+    #     os.makedirs(rand_dir)
 
     # if parallel and inner_parallel:
     #     with multiprocessing.get_context('spawn').Pool(num_workers) as pool:
@@ -313,7 +312,9 @@ def enum_signs(comps):
 
 
 def run_dataset(dataset):
-    executor = ProcessPoolExecutor(max_workers=num_workers)
+    executor = None
+    if num_workers > 1:
+        executor = ProcessPoolExecutor(max_workers=num_workers)
     return asyncio.run(run_dataset_async(dataset, executor))
 
 
@@ -398,3 +399,31 @@ async def run_dataset_async(dataset, executor=None):
         f"({dataset.mat.shape[1] / 1000:.1f}k) {dataset_name} {best['skew_scale']} ll={best['ll']:.05f}"
         f" constraints={get_cons_str(settings[config]['constraints'])}")
     plt.savefig(f'{res_dir}/best.png')
+
+    model = MixtureModel.json_from_frozen(best['model'])
+    print(model)
+    json.dump(model, open(f'{res_dir}/model.json', 'w'), indent=2)
+
+
+def eval_model(dataset, model, res_dir):
+    if not os.path.exists(res_dir):
+        os.makedirs(res_dir)
+    X = dataset.mat.T
+    print(X.shape)
+    if model_samples == 2:
+        model = MixtureModel.from_json(model, X)
+    elif model_samples == 1:
+        model = MixtureModel1S.from_json(model, X)
+    res = {
+        'll':        model.log_likelihood(X),
+        'slls':      model.sep_log_likelihood(X),
+        'delta_cdf': model.delta_cdf,
+    }
+    model.plot(X, None, res['slls'])
+    ax = plt.gcf().axes[0]
+    plt.axes(ax)
+    plt.title(
+        f"({dataset.mat.shape[1] / 1000:.1f}k) 'Dataset' ll={res['ll']:.05f}"
+    )
+    plt.savefig(f'{res_dir}/best.png')
+    return res

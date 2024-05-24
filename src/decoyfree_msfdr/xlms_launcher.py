@@ -106,7 +106,7 @@ parser = argparse.ArgumentParser(prog='decoyfree-xlmsfdr')
 parser.add_argument('-c', '--constraints', default=config)
 parser.add_argument('-s', '--model_samples', type=int, default=model_samples)
 parser.add_argument('--threads', type=int, default=num_workers)
-parser.add_argument('-r', '--random_size', type=int, default=random_size) # num restarts
+parser.add_argument('-r', '--random_size', type=int, default=random_size)  # num restarts
 # parser.add_argument('-q', '--part', type=int, default=-1)
 parser.add_argument('-o', '--random_i', type=int, default=-1)
 parser.add_argument('--tolerance', type=float, default=tolerance)
@@ -137,6 +137,10 @@ random_i = args.random_i
 show_plotting = args.show_plotting
 mu_strategy = args.mu_strategy
 out_dir = args.out_dir
+
+if not show_plotting:
+    import matplotlib
+    matplotlib.use('Agg')
 
 if mu_strategy in ['gaussian', 'uniform']:
     init_strategy = 'random'
@@ -185,7 +189,8 @@ settings = {
 
 
 def get_cons_str(constraints):
-    return ';'.join(map(lambda x: map_cons_str[x], constraints))
+    cons = ';'.join(map(lambda x: map_cons_str[x], constraints))
+    return cons if cons else 'no constraints'
 
 
 model_class = f'{model_samples}S{"g" if gaussian_model else ""}{"2" if ic2_comp else ""}'
@@ -263,6 +268,7 @@ async def run_rand_models(n, sls, dataset_name, dataset, res_dir, executor=None)
 
     if executor:
         tasks = [executor_submit(executor, run_model, sls, dataset_name, dataset, rand_dir, i) for i in range(n)]
+        # tasks = [loop.run_in_executor(executor, run_model, sls, dataset_name, dataset, rand_dir, i) for i in range(n)]
         models = await asyncio.gather(*tasks)
     else:
         models = list(starmap(run_model, [(sls, dataset_name, dataset, rand_dir, i) for i in range(n)]))
@@ -319,6 +325,8 @@ ProcessPool -- run tasks
 
 """
 
+loop = asyncio.get_event_loop()
+
 
 async def run_dataset_async(dataset, executor=None):
     dataset_name = 'Dataset'
@@ -359,10 +367,13 @@ async def run_dataset_async(dataset, executor=None):
     if init_strategy == 'random':
         tasks = list(
             map(lambda sls: run_rand_models(random_size, sls, dataset_name, dataset, res_dir, executor), choices))
+        # for task in tasks:
+        #     print('checking loop', task._loop is loop)
         models = await asyncio.gather(*tasks)
     else:
         # models = list(starmap(run_model, choices, *args))
         tasks = [executor_submit(executor, run_model, sls, *args) for sls in choices]
+        # tasks = [loop.run_in_executor(executor, run_model, sls, *args) for sls in choices]
         models = await asyncio.gather(*tasks)
     # lock = acquireLock(f'{res_dir}/models_pickle.lock')
     # if os.path.exists(f'{res_dir}/models.pickle'):
@@ -386,7 +397,7 @@ async def run_dataset_async(dataset, executor=None):
     # plt.axvline(tda_fdr1, linestyle='--')
     # plt.text(tda_fdr1, 0.003, '$\leftarrow$ TDA 1% FDR threshold')
     plt.title(
-        f"({dataset.mat.shape[1] / 1000:.1f}k) {dataset_name} {best['skew_scale']} ll={best['ll']:.05f}"
+        f"({dataset.mat.shape[1] / 1000:.1f}k) {dataset_name} Init skewness: {best['skew_scale']} ll={best['ll']:.05f}"
         f" constraints={get_cons_str(settings[config]['constraints'])}"
         # f" {'Y' if best['cons_sat'] else 'N'}"
     )
@@ -397,7 +408,9 @@ async def run_dataset_async(dataset, executor=None):
     json.dump(model, open(f'{res_dir}/model.json', 'w'), indent=2)
 
 
-def eval_model(dataset, model):
+def eval_model(dataset, model, res_dir):
+    if not os.path.exists(res_dir):
+        os.makedirs(res_dir)
     X = dataset.mat.T
     print(X.shape)
     if model_samples == 2:
@@ -405,12 +418,15 @@ def eval_model(dataset, model):
     elif model_samples == 1:
         model = MixtureModel1S.from_json(model, X)
     res = {
-        'll': model.log_likelihood(X),
-        'delta_cdf': model.delta_cdf(X[0])
+        'll':        model.log_likelihood(X),
+        'slls':      model.sep_log_likelihood(X),
+        'delta_cdf': model.delta_cdf,
     }
+    model.plot(X, None, res['slls'])
+    ax = plt.gcf().axes[0]
+    plt.axes(ax)
+    plt.title(
+        f"({dataset.mat.shape[1] / 1000:.1f}k) 'Dataset' ll={res['ll']:.05f}"
+    )
+    plt.savefig(f'{res_dir}/best.png')
     return res
-
-
-
-
-
