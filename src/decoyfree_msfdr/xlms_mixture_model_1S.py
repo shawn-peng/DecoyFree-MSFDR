@@ -51,6 +51,7 @@ class MixtureModel1S(MixtureModelBase):
         :param show_plotting: plot each step during running of the program
         """
         super().__init__(**kwargs)
+        self.skew_dirs = skew_dirs
         self.tolerance = tolerance
         self.binwidth = binwidth
         self.nbins = nbins
@@ -92,6 +93,7 @@ class MixtureModel1S(MixtureModelBase):
         self.starting_pos = None
         self.lls = []
         self.ll = None
+        self.slls = None
         self.stopped = False
 
     def log(self, *args):
@@ -176,6 +178,22 @@ class MixtureModel1S(MixtureModelBase):
         sample = np.random.normal(mu, sigma, len(self.all_comps))
         mus = self.mus_from_sample(sample)
         return mus
+
+    @staticmethod
+    def from_json(model_json, X):
+        model = MixtureModel1S({k: 1 for k in ['C', 'IC', 'I1']})
+        for k in ['C', 'IC', 'I1']:
+            param = model_json[k]
+            model.all_comps[k].mu = param['mu']
+            model.all_comps[k].sigma = param['sigma']
+            model.all_comps[k].alpha = param['lambda']
+        model.update_weights(model_json['weights'])
+
+        model.initialized = True
+        model.init_range(X)
+        model.create_constraints()
+        model.starting_pos = model.frozen()
+        return model
 
     def init_model(self, X):
         X = X.astype(np.float64)

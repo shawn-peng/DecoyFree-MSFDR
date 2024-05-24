@@ -85,8 +85,6 @@ class MixtureModel(MixtureModelBase):
         self.ic2_comp = ic2_comp
         self.seedoff = seedoff
 
-        self.log('show plotting', self.show_plotting)
-
         """To do a mixed 1S 2S model, we add 3 joint component"""
         if ic2_comp:
             self.join_comps = [
