@@ -1,6 +1,7 @@
 # Decoy-Free FDR Estimation for Mass-Spectrometry
 
-A package to estimate FDR in mass-spectrometry searching results using decoy-free approach
+This a package to estimate FDR in mass-spectrometry searching results from search engines using decoy-free approach.
+This software will analyze the matching scores output from the search engining.
 
 ## Install
 
