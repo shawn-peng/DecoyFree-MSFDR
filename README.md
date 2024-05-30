@@ -4,7 +4,14 @@ This a package to estimate FDR in mass-spectrometry searching results from searc
 This software will analyze the matching scores output from the search engining.
 
 ## Install
+Make sure python is installed, [python official website](https://www.python.org/downloads/).
 
+Install the `pip`, python package management tool,
+```commandline
+python -m ensurepip --upgrade
+```
+
+Then, install our package,
 ```commandline
 pip install decoyfree-msfdr
 ```
